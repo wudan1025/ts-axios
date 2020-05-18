@@ -65,12 +65,12 @@ import axios from '../../src/index'
 
 // data验证开始
 // axios({
-//   method: 'post',
-//   url: '/base/post',
-//   data: {
-//     a: 1,
-//     b: 2
-//   }
+//     method: 'post',
+//     url: '/base/post',
+//     data: {
+//         a: 1,
+//         b: 2
+//     }
 // })
 
 // const arr = new Int32Array([21, 31])
