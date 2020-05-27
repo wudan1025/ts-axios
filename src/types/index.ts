@@ -29,6 +29,8 @@ export interface AxiosRequestConfig {
   transformResponse?: AxiosTransformer | AxiosTransformer[]
   // 字符串索引签名 ?
   [propName: string]: any
+  // 取消
+  cancelToken?: CancelToken
 }
 
 // 响应配置
@@ -112,4 +114,20 @@ export interface RejectedFn {
 
 export interface AxiosTransformer {
   (data: any, headers?: any): any
+}
+
+// CancelToken
+export interface CancelToken{
+  promise: Promise<string>
+  reason?:string
+}
+
+// 取消
+export interface Canceler {
+  (message?: string): void
+}
+
+// 取消执行函数
+export interface CancelExecutor {
+  (cancel: Canceler): void
 }

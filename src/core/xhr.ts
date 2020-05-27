@@ -10,7 +10,8 @@ export default function xhr(config: AxiosRequestConfig): AxiosPromise {
       method = 'get',
       headers,
       responseType,
-      timeout
+      timeout,
+      cancelToken
     } = config
     const request = new XMLHttpRequest()
     if (responseType) {
@@ -31,6 +32,15 @@ export default function xhr(config: AxiosRequestConfig): AxiosPromise {
         request.setRequestHeader(name, headers[name])
       }
     })
+
+    // 取消调用
+    if (cancelToken) {
+      cancelToken.promise.then(reason => {
+        request.abort()
+        reject(reason)
+      })
+    }
+
     request.send(data)
 
     // 监听请求状态变化
