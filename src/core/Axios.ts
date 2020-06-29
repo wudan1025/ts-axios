@@ -10,6 +10,7 @@ import dispatchRequest from './dispatchRequest'
 import InterceptorManager from './InterceptorManager'
 import mergeConfig from './mergeConfig'
 
+
 interface Interceptors {
   request: InterceptorManager<AxiosRequestConfig>
   response: InterceptorManager<AxiosResponse>
@@ -23,6 +24,7 @@ interface PromiseChain<T> {
 export default class Axios {
   defaults: AxiosRequestConfig
   interceptors: Interceptors
+  
 
   constructor(initConfig: AxiosRequestConfig) {
     // 初始化拦截器
@@ -134,3 +136,4 @@ export default class Axios {
     )
   }
 }
+

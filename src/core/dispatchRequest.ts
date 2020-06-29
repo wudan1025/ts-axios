@@ -5,11 +5,21 @@ import xhr from './xhr'
 import transform from './transform'
 
 function dispatchRequest(config: AxiosRequestConfig): AxiosPromise {
+  throwIfCancellationRequested(config)
   processConfig(config)
   return xhr(config).then(res => {
     // console.log(res)
     return transformResponseData(res)
   })
+}
+
+// 如果调用时候传递了cancelToken则直接抛出异常
+function throwIfCancellationRequested(config: AxiosRequestConfig): void {
+  // console.log(config.cancelToken)
+  if (config.cancelToken) {
+    // console.log('config.cancelToken.throwIfRequested()')
+    config.cancelToken.throwIfRequested()
+  }
 }
 
 // 对参数进行处理

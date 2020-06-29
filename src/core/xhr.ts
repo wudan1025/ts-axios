@@ -1,6 +1,9 @@
 import { AxiosRequestConfig, AxiosPromise, AxiosResponse } from '../types'
 import { parseHeaders } from '../helpers/header'
 import { createError } from '../helpers/error'
+import { isURLSameOrigin } from '../helpers/url'
+import { isFormData } from '../helpers/utils'
+import cookie from '../helpers/cookie'
 
 export default function xhr(config: AxiosRequestConfig): AxiosPromise {
   return new Promise((resolve, reject) => {
@@ -11,86 +14,121 @@ export default function xhr(config: AxiosRequestConfig): AxiosPromise {
       headers,
       responseType,
       timeout,
-      cancelToken
+      cancelToken,
+      withCredentials,
+      xsrfCookieName,
+      xsrfHeaderName,
+      onDownloadProgress,
+      onUploadProgress,
+      auth
     } = config
+
     const request = new XMLHttpRequest()
-    if (responseType) {
-      request.responseType = responseType
-    }
 
-    if (timeout) {
-      request.timeout = timeout
-    }
-
-    // 加 ！表示类型断言，这个变量不会为空
     request.open(method.toUpperCase(), url!, true)
-    Object.keys(headers).forEach(name => {
-      if (data === null && name.toLowerCase() === 'content-type') {
-        delete headers[name]
-      } else {
-        // setRequestHeader 要在 open() 之后、send() 之前调用
-        request.setRequestHeader(name, headers[name])
-      }
-    })
 
-    // 取消调用
-    if (cancelToken) {
-      cancelToken.promise.then(reason => {
-        request.abort()
-        reject(reason)
-      })
-    }
+    configureRequest()
+
+    addEvents()
+
+    processHeaders()
+
+    processCancel()
 
     request.send(data)
 
-    // 监听请求状态变化
-    // 多次触发
-    request.onreadystatechange = function handleLoad() {
-      if (request.readyState !== 4) {
-        return
+    function configureRequest(): void {
+      if (responseType) {
+        request.responseType = responseType
       }
 
-      // 网络错误或者超时错误
-      if (request.status === 0) {
-        return
+      if (timeout) {
+        request.timeout = timeout
       }
 
-      const responseHeaders = parseHeaders(request.getAllResponseHeaders())
-      const responseData =
-        responseType && responseType !== 'text'
-          ? request.response
-          : request.responseText
-      const response: AxiosResponse = {
-        data: responseData,
-        status: request.status,
-        statusText: request.statusText,
-        headers: responseHeaders,
-        config,
-        request
+      if (withCredentials) {
+        request.withCredentials = withCredentials
       }
-      handleResponse(response)
-      // 讲结果返回
-      // resolve(response)
-    }
-    // 错误
-    request.onerror = function handleError() {
-      reject(createError('Network Error', config, null, request))
     }
 
-    // 超时
-    request.ontimeout = function handleTimeout() {
-      reject(
-        createError(
-          `Timeout of ${config.timeout} ms exceeded`,
+    function addEvents(): void {
+      request.onreadystatechange = function handleLoad() {
+        if (request.readyState !== 4) {
+          return
+        }
+
+        if (request.status === 0) {
+          return
+        }
+
+        const responseHeaders = parseHeaders(request.getAllResponseHeaders())
+        const responseData =
+          responseType && responseType !== 'text' ? request.response : request.responseText
+        const response: AxiosResponse = {
+          data: responseData,
+          status: request.status,
+          statusText: request.statusText,
+          headers: responseHeaders,
           config,
-          'ECONNABORTED',
           request
+        }
+        handleResponse(response)
+      }
+
+      request.onerror = function handleError() {
+        reject(createError('Network Error', config, null, request))
+      }
+
+      request.ontimeout = function handleTimeout() {
+        reject(
+          createError(`Timeout of ${config.timeout} ms exceeded`, config, 'ECONNABORTED', request)
         )
-      )
+      }
+
+      if (onDownloadProgress) {
+        request.onprogress = onDownloadProgress
+      }
+
+      if (onUploadProgress) {
+        request.upload.onprogress = onUploadProgress
+      }
+    }
+
+    function processHeaders(): void {
+      if (isFormData(data)) {
+        delete headers['Content-Type']
+      }
+
+      if ((withCredentials || isURLSameOrigin(url!)) && xsrfCookieName) {
+        const xsrfValue = cookie.read(xsrfCookieName)
+        if (xsrfValue) {
+          // headers[xsrfHeaderName!] = xsrfValue
+        }
+      }
+
+      if (auth) {
+        headers['Authorization'] = 'Basic ' + btoa(auth.username + ':' + auth.password)
+      }
+
+      Object.keys(headers).forEach(name => {
+        if (data === null && name.toLowerCase() === 'content-type') {
+          delete headers[name]
+        } else {
+          request.setRequestHeader(name, headers[name])
+        }
+      })
+    }
+
+    function processCancel(): void {
+      if (cancelToken) {
+        cancelToken.promise.then(reason => {
+          request.abort()
+          reject(reason)
+        }).catch()
+      }
     }
 
     function handleResponse(response: AxiosResponse): void {
-      // 成功
       if (response.status >= 200 && response.status < 300) {
         resolve(response)
       } else {

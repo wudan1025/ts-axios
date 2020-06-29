@@ -20,8 +20,7 @@ export default class InterceptorManager<T> {
   // 遍历拦截器
   forEach(fn: (Interceptor: Interceptor<T>) => void): void {
     this.interceptors.forEach(interceptor => {
-      if (interceptor != null) {
-        // 执行函数
+      if (interceptor !== null) {
         fn(interceptor)
       }
     })

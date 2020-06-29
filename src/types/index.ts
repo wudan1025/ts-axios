@@ -14,6 +14,12 @@ export type Method =
   | 'post'
   | 'POST'
 
+// AxiosBasicCredentials  验证信息
+export interface AxiosBasicCredentials {
+  username: string
+  password: string
+}
+
 // 请求配置
 export interface AxiosRequestConfig {
   url?: string
@@ -31,6 +37,13 @@ export interface AxiosRequestConfig {
   [propName: string]: any
   // 取消
   cancelToken?: CancelToken
+  // 跨域携带cookie
+  withCredentials?: boolean
+  // 进度
+  onDownloadProgress?: (e: ProgressEvent) => void
+  onUploadProgress?: (e: ProgressEvent) => void
+  // auth 验证
+  auth?: AxiosBasicCredentials
 }
 
 // 响应配置
@@ -44,7 +57,7 @@ export interface AxiosResponse<T = any> {
 }
 
 // ?
-export interface AxiosPromise<T = any> extends Promise<AxiosResponse<T>> {}
+export interface AxiosPromise<T = any> extends Promise<AxiosResponse<T>> { }
 
 // 错误配置
 export interface AxiosError extends Error {
@@ -81,7 +94,9 @@ export interface Axios {
     url: string,
     data?: any,
     config?: AxiosRequestConfig
-  ): AxiosPromise<T>
+  ): AxiosPromise<T>,
+  xsrfCookieName?: string
+  xsrfHeaderName?: string
 }
 
 // ?
@@ -117,9 +132,10 @@ export interface AxiosTransformer {
 }
 
 // CancelToken
-export interface CancelToken{
-  promise: Promise<string>
-  reason?:string
+export interface CancelToken {
+  promise: Promise<Cancel>
+  reason?: Cancel
+  throwIfRequested(): void
 }
 
 // 取消
@@ -130,4 +146,31 @@ export interface Canceler {
 // 取消执行函数
 export interface CancelExecutor {
   (cancel: Canceler): void
+}
+
+export interface CancelTokenSource {
+  token: CancelToken
+  cancel: Canceler
+}
+
+export interface CancelTokenStatic {
+  new(executor: CancelExecutor): CancelToken
+
+  source(): CancelTokenSource
+}
+
+export interface Cancel {
+  message?: string
+}
+
+export interface CancelStatic {
+  new(message?: string): Cancel
+}
+
+export interface AxiosStatic extends AxiosInstance {
+  create(config?: AxiosRequestConfig): AxiosInstance
+
+  CancelToken: CancelTokenStatic
+  Cancel: CancelStatic
+  isCancel: (value: any) => boolean
 }
